@@ -174,7 +174,8 @@ class RouterboardResource(object):
         self.namespace = namespace
 
     def query(self, command, **kwargs):
-        command_arguments = self._prepare_arguments(True, **kwargs)
+        command_arguments = self._prepare_arguments(selector_char="?",
+                                                    **kwargs)
         return self._send_command(command, command_arguments)
 
     def call(self, command, *args, **kwargs):
@@ -187,7 +188,8 @@ class RouterboardResource(object):
             if is_query:
                 return self.query(command, **kwargs)
 
-        command_arguments = self._prepare_arguments(False, **kwargs)
+        command_arguments = self._prepare_arguments(selector_char="=",
+                                                    **kwargs)
         return self._send_command(command, command_arguments)
 
     def _send_command(self, command, command_arguments):
@@ -200,13 +202,12 @@ class RouterboardResource(object):
         return output
 
     @staticmethod
-    def _prepare_arguments(is_query, **kwargs):
+    def _prepare_arguments(is_query, selector_char, **kwargs):
         command_arguments = []
         for key, value in kwargs.iteritems():
             if key in ['id', 'proplist']:
                 key = '.%s' % key
             key = key.replace('_', '-')
-            selector_char = '?' if is_query else '='
             command_arguments.append(
                 '%s%s=%s' % (selector_char, key, value))
 
