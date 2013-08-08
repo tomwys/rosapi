@@ -173,16 +173,30 @@ class RouterboardResource(object):
         self.api_client = api_client
         self.namespace = namespace
 
-    def call(self, command, is_query, **kwargs):
-        command_arguments = self._prepare_arguments(is_query, **kwargs)
+    def query(self, command, **kwargs):
+        command_arguments = self._prepare_arguments(True, **kwargs)
+        return self._send_command(command, command_arguments)
+
+    def call(self, command, *args, **kwargs):
+        if "is_query" in kwargs or args: #  TODO remove this after grace period
+            logger.warning("'is_query' parameter to RouterboardResource.call"
+                           "is deprected and will be removed. For"
+                           "is_query=False use .call, for is_query=True use"
+                           ".query instead.")
+            is_query = kwargs.pop('is_query', False) or any(args)
+            if is_query:
+                return self.query(command, **kwargs)
+
+        command_arguments = self._prepare_arguments(False, **kwargs)
+        return self._send_command(command, command_arguments)
+
+    def _send_command(self, command, command_arguments):
         response = self.api_client.talk(
             ['%s/%s' % (self.namespace, command)] + command_arguments)
-
         output = []
         for response_type, attributes in response:
             if response_type == '!re':
                 output.append(self._remove_first_char_from_keys(attributes))
-
         return output
 
     @staticmethod
@@ -208,20 +222,20 @@ class RouterboardResource(object):
         return dict(elements)
 
     def get(self, **kwargs):
-        return self.call('print', True, **kwargs)
+        return self.query('print', **kwargs)
 
     def detailed_get(self, **kwargs):
         kwargs['detail'] = kwargs.pop('detail', '')
-        return self.call('print', False, **kwargs)
+        return self.call('print', **kwargs)
 
     def set(self, **kwargs):
-        return self.call('set', False, **kwargs)
+        return self.call('set', **kwargs)
 
     def add(self, **kwargs):
-        return self.call('add', False, **kwargs)
+        return self.call('add', **kwargs)
 
     def remove(self, **kwargs):
-        return self.call('remove', False, **kwargs)
+        return self.call('remove', **kwargs)
 
 
 class RouterboardAPI(object):
